@@ -59,6 +59,13 @@ func execUpload(apiKey, locatorURL, filePath string) error {
 	}
 	defer close()
 
+	fileType := "file"
+	if fileInfo, err := os.Stat(filePath); err != nil {
+		return err
+	} else if fileInfo.IsDir() {
+		fileType = "folder"
+	}
+
 	tempFile := path.Join(os.TempDir(), path.Base(filePath))
 	if _, err := os.Stat(tempFile); err == nil {
 		os.Remove(tempFile)
@@ -69,7 +76,7 @@ func execUpload(apiKey, locatorURL, filePath string) error {
 		return err
 	}
 
-	if err := uploadFile(schedulerAPI, tempFile, root); err != nil {
+	if err := uploadFile(schedulerAPI, tempFile, root, path.Base(filePath), fileType); err != nil {
 		return err
 	}
 
@@ -79,8 +86,8 @@ func execUpload(apiKey, locatorURL, filePath string) error {
 	return nil
 }
 
-func uploadFile(schedulerAPI api.Scheduler, carFile string, carCID string) error {
-	f, err := os.Open(carFile)
+func uploadFile(schedulerAPI api.Scheduler, carFilePath, carCID, fileName, fileType string) error {
+	f, err := os.Open(carFilePath)
 	if err != nil {
 		return err
 	}
@@ -91,18 +98,19 @@ func uploadFile(schedulerAPI api.Scheduler, carFile string, carCID string) error
 		return err
 	}
 
-	assetProperty := &types.AssetProperty{AssetCID: carCID, AssetName: f.Name(), AssetSize: fileInfo.Size(), AssetType: "file"}
+	assetProperty := &types.AssetProperty{AssetCID: carCID, AssetName: fileName, AssetSize: fileInfo.Size(), AssetType: fileType}
 
 	rsp, err := schedulerAPI.CreateUserAsset(context.Background(), assetProperty)
 	if err != nil {
+		fmt.Printf("CreateUserAsset error %#v\n", err)
 		return fmt.Errorf("CreateUserAsset error %w", err)
 	}
 
 	if rsp.AlreadyExists {
-		return fmt.Errorf("asset %s already exist", carFile)
+		return fmt.Errorf("asset %s already exist", carCID)
 	}
 
-	err = uploadFileWithForm(carFile, rsp.UploadURL, rsp.Token)
+	err = uploadFileWithForm(carFilePath, rsp.UploadURL, rsp.Token)
 	if err != nil {
 		// fmt.Println("uploadFileWithForm error ", err.Error())
 		return fmt.Errorf("uploadFileWithForm error %w", err)
