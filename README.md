@@ -9,4 +9,4 @@
 ![Alt text](doc/c52301810bb6b88e31a73a9d257574b.png)
 
 ### 2.2 upload file
-./storage-upload-sample --api-key YOUR-API-KEY --locator-url https://locator.titannet.io:5000/rpc/v0 YOUR-FILE
+    ./storage-upload-sample --api-key YOUR-API-KEY --locator-url https://locator.titannet.io:5000/rpc/v0 YOUR-FILE
